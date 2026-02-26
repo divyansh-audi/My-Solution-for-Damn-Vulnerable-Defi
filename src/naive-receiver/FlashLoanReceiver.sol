@@ -18,6 +18,7 @@ contract FlashLoanReceiver is IERC3156FlashBorrower {
     {
         assembly {
             // gas savings
+            // this is check is caller is the lender contract or not 
             if iszero(eq(sload(pool.slot), caller())) {
                 mstore(0x00, 0x48f5c3ed)
                 revert(0x1c, 0x04)
@@ -27,6 +28,7 @@ contract FlashLoanReceiver is IERC3156FlashBorrower {
         if (token != address(NaiveReceiverPool(pool).weth())) revert NaiveReceiverPool.UnsupportedCurrency();
 
         uint256 amountToBeRepaid;
+        //might be overflow here 
         unchecked {
             amountToBeRepaid = amount + fee;
         }
